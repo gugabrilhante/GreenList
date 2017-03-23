@@ -20,21 +20,24 @@ class InitialViewController: UIViewController, UITableViewDataSource, UITableVie
     @IBOutlet weak var valueTextField: UITextField!
     
     @IBOutlet var searchBarView: UIView!
-    var resourceDisplayList:[ResourceHolder] = [ResourceHolder]()
-    var resourceFilteredList:[ResourceHolder] = [ResourceHolder]()
-    var resourceFullList:[ResourceHolder] = [ResourceHolder]()
+    var resourceDisplayList:[ResourceHolder] = [ResourceHolder]()//lista completa
+    var resourceFilteredList:[ResourceHolder] = [ResourceHolder]()//lista com filtros aplicados(otimiza a busca do searchBar)
+    var resourceFullList:[ResourceHolder] = [ResourceHolder]()//lista mostrada na tela
     
-    var languageIdFilter:[String] = [String]()
-    var moduleIdFilter:[String] = [String]()
+    var languageIdFilter:[String] = [String]()//lista a ser preenchida com as opções de language_id
+    var moduleIdFilter:[String] = [String]()//lista a ser preenchida com as opções de module_id
     
+    //salva a posicao do language_id e module_id escolhidos no pickerview
     var indexLanguage = 0
     var indexModule = 0
     
     var languageSelected = "-"
     var moduleSelected = "-"
     
+    //auxilicia na busca do searchbar(para otimização)
     var lastTypedString:String = ""
     
+    //usado na animação do searchBar
     var lastOffSet:CGFloat?
     
     var searchBarTopRange:CGFloat?
@@ -48,9 +51,11 @@ class InitialViewController: UIViewController, UITableViewDataSource, UITableVie
         //self.tableView.isScrollEnabled = true
         self.tableView.delegate = self
         
+        //limita o espaço da animação do searchBar
         self.searchBarTopRange = self.searchBarView.frame.origin.y-self.searchBarView.frame.height
         self.searchBarBottomRange = self.searchBarView.frame.origin.y
 
+        //verifica se existe uma lista salva em cache
         if let array = UserDefaults.standard.dictionary(forKey: "list_translation") {
             self.resourceFullList = ResourceHolder.collectionFromJSON(JSON(array["data"]))
             
@@ -72,13 +77,13 @@ class InitialViewController: UIViewController, UITableViewDataSource, UITableVie
         // Dispose of any resources that can be recreated.
     }
     
-    func placeSearchBarBack(){
+    func placeSearchBarBack(){//animação que faz a searchBar voltar a posição inicial
         UIView.animate(withDuration: 0.5) { 
             self.searchBarView.frame.origin.y = self.searchBarBottomRange!
         }
     }
     
-    func fetchList(){
+    func fetchList(){//baixa a lista
         
         let progressHUD = MBProgressHUD.showAdded(to: self.view, animated: true)
         progressHUD?.labelText = "Carregando"
@@ -92,7 +97,7 @@ class InitialViewController: UIViewController, UITableViewDataSource, UITableVie
                 var dict = [String:Any]()
                 dict["data"] = self.resourceFullList.map{ $0.toDictionary() }
                 
-                defaults.set(dict, forKey: "list_translation")
+                defaults.set(dict, forKey: "list_translation")//salva a lista em cache para ser usada offline
                 UserDefaults.standard.synchronize()
                 
                 //let saved = UserDefaults.standard.dictionary(forKey: "list_translation")
@@ -135,14 +140,16 @@ class InitialViewController: UIViewController, UITableViewDataSource, UITableVie
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     
-        //let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
-        let resourceViewController = self.storyboard?.instantiateViewController(withIdentifier: "ResourceDetailId") as! ResourceDetailViewController
-        resourceViewController.resource = self.resourceDisplayList[indexPath.row-1].resource
-        self.navigationController?.pushViewController(resourceViewController, animated: true)
+        if(indexPath.row>0){
+            //let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+            let resourceViewController = self.storyboard?.instantiateViewController(withIdentifier: "ResourceDetailId") as! ResourceDetailViewController
+            resourceViewController.resource = self.resourceDisplayList[indexPath.row-1].resource
+            self.navigationController?.pushViewController(resourceViewController, animated: true)
+        }
         
     }
     
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {//usado para animar o searchBar
         
         if let pastOffSet = self.lastOffSet{
             let newOffSet = scrollView.contentOffset.y
@@ -185,7 +192,7 @@ class InitialViewController: UIViewController, UITableViewDataSource, UITableVie
         clearData()
     }
     
-    func clearData(){
+    func clearData(){//limpa a lista e o cache do App
         if(self.resourceFullList.count>0){
             self.resourceDisplayList = [ResourceHolder]()
             self.resourceFilteredList = [ResourceHolder]()
@@ -207,16 +214,13 @@ class InitialViewController: UIViewController, UITableViewDataSource, UITableVie
             if(languageIdFilter.count==0 || moduleIdFilter.count==0){
                 setFilterList()
             }
-            
+            //chama o pickerview para mostrar opções de filtro
             ActionSheetMultipleStringPicker.show(withTitle: "Filtros", rows: [
                 languageIdFilter,
                 moduleIdFilter
                 ], initialSelection: [indexLanguage, indexModule], doneBlock: {
                     picker, indexes, values in
                     
-                    print("values = \(values)")
-                    print("indexes = \(indexes)")
-                    print("picker = \(picker)")
                     let indexDict = indexes as! [Int]
                     self.indexLanguage = indexDict[0]
                     self.indexModule = indexDict[1]
@@ -242,7 +246,7 @@ class InitialViewController: UIViewController, UITableViewDataSource, UITableVie
         var auxList01 = [ResourceHolder]()
         var auxList02 = [ResourceHolder]()
         self.resourceFilteredList = [ResourceHolder]()
-        if(languageSelected != "-"){
+        if(languageSelected != "-"){//aplica o primeiro filtro
             for resourceHolder in self.resourceFullList{
                 if(languageSelected==resourceHolder.resource.language_id){
                     auxList01.append(resourceHolder)
@@ -252,7 +256,7 @@ class InitialViewController: UIViewController, UITableViewDataSource, UITableVie
             auxList01 = self.resourceFullList
         }
         
-        if(moduleSelected != "-"){
+        if(moduleSelected != "-"){//aplica o segundo filtro na lista ja filtrada(caso haja filtro)
             for resourceHolder in auxList01{
                 if(moduleSelected==resourceHolder.resource.module_id){
                     auxList02.append(resourceHolder)
