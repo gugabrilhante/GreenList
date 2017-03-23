@@ -194,6 +194,13 @@ class InitialViewController: UIViewController, UITableViewDataSource, UITableVie
     
     func clearData(){//limpa a lista e o cache do App
         if(self.resourceFullList.count>0){
+            self.indexModule = 0
+            self.indexLanguage = 0
+            self.languageSelected = "-"
+            self.moduleSelected = "-"
+            self.languageIdFilter = [String]()
+            self.moduleIdFilter = [String]()
+            
             self.resourceDisplayList = [ResourceHolder]()
             self.resourceFilteredList = [ResourceHolder]()
             self.resourceFullList = [ResourceHolder]()
